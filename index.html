@@ -3,14 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>منصة بوتات التداول الحقيقية</title>
+    <title>منصة بوتات التداول - Trading Bots Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             background-color: #181a20;
             color: #eaecef;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            padding-bottom: 88px;
+            padding-bottom: 92px;
+            -webkit-tap-highlight-color: transparent;
         }
         .card-dark {
             background-color: #1e2329;
@@ -33,26 +34,36 @@
         }
         .tab-content {
             display: none;
+            animation: fadeIn 0.18s ease-in-out;
         }
         .tab-content.active {
             display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(3px); }
+            to { opacity: 1; transform: translateY(0); }
         }
     </style>
 </head>
 <body class="max-w-2xl mx-auto min-h-screen relative">
 
     <!-- الشريط العلوي -->
-    <header class="sticky top-0 z-40 bg-[#181a20]/95 backdrop-blur border-b border-[#2b3139] px-4 py-2.5 flex justify-between items-center">
-        <div class="flex items-center space-x-2 space-x-reverse">
-            <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 inline-block" id="connDot"></span>
-            <div>
-                <div class="text-xs font-bold text-white" id="connStatusText">غير متصل بالمنصة</div>
-                <div class="text-[10px] text-gray-400 font-mono" id="proxyUrlLabel">السيرفر: غير محدد</div>
+    <header class="sticky top-0 z-40 bg-[#181a20]/95 backdrop-blur border-b border-[#2b3139] px-3.5 py-2.5 flex justify-between items-center gap-2">
+        <div class="flex items-center space-x-2 space-x-reverse min-w-0">
+            <span class="w-2.5 h-2.5 rounded-full bg-yellow-400 shrink-0" id="connDot"></span>
+            <div class="min-w-0">
+                <div class="text-xs font-bold text-white truncate" id="connStatusText">غير متصل بالمنصة</div>
+                <div class="text-[10px] text-gray-400 font-mono truncate" id="proxyUrlLabel">السيرفر: غير محدد</div>
             </div>
         </div>
-        <button onclick="openConnectModal()" class="bg-[#fcd535] text-black font-bold text-xs px-3 py-1.5 rounded-lg">
-            🔗 ربط المنصة
-        </button>
+        <div class="flex items-center space-x-1.5 space-x-reverse shrink-0">
+            <button onclick="fetchRealBalance()" class="bg-[#2b3139] hover:bg-[#363c45] text-white text-[11px] font-bold px-2.5 py-1.5 rounded-lg">
+                ↻ رصيد
+            </button>
+            <button onclick="openConnectModal()" class="bg-[#fcd535] text-black font-bold text-[11px] px-3 py-1.5 rounded-lg">
+                🔗 ربط
+            </button>
+        </div>
     </header>
 
     <!-- إشعار منبثق -->
@@ -71,105 +82,253 @@
                 <span class="text-gray-400">رصيد USDT المحجوز في أوامر</span>
                 <span class="font-mono text-gray-200">$<span id="realUsdtLocked">0.00</span></span>
             </div>
-            <div class="flex justify-between items-center pt-1">
-                <button onclick="fetchRealBalance()" class="bg-[#2b3139] hover:bg-[#363c45] text-xs text-white font-bold px-3 py-2 rounded-lg">
-                    ↻ تحديث الرصيد من باينس
-                </button>
-                <span class="text-[11px] text-gray-400" id="envBadge">الوضع: حقيقي (Mainnet)</span>
+            <div class="flex justify-between items-center pt-1 text-[11px]">
+                <span class="text-gray-400" id="envBadge">الوضع: حقيقي (Mainnet)</span>
+                <button onclick="fetchRealBalance()" class="text-[#fcd535] font-bold underline">تحديث الآن</button>
             </div>
         </div>
 
-        <div class="card-dark p-4 space-y-2">
-            <h2 class="text-sm font-bold text-white">أرصدة الأصول الموجودة في حسابك</h2>
-            <div id="accountAssetsList" class="text-xs text-gray-400 space-y-1.5">
-                اربط المنصة واضغط "تحديث الرصيد من باينس" لعرض أرصدتك الفعلية.
+        <div class="card-dark p-4 space-y-3">
+            <div class="flex justify-between items-center">
+                <h2 class="text-sm font-bold text-white">أزواج سريعة للتداول بالبوت</h2>
+                <button onclick="switchTab('markets')" class="text-xs text-[#fcd535]">الكل ←</button>
             </div>
+            <div id="homeQuickPairs" class="grid grid-cols-2 gap-2"></div>
+        </div>
+
+        <div class="card-dark p-4 space-y-2">
+            <h2 class="text-sm font-bold text-white">نصائح قبل إطلاق البوت الحقيقي</h2>
+            <ul class="text-xs text-gray-400 space-y-1.5 list-disc pr-4 leading-relaxed">
+                <li>تأكد من وجود رصيد كافٍ من <strong class="text-white">USDT</strong> (للشراء) أو من العملة نفسها (للبيع).</li>
+                <li>اجعل قيمة الأمر أعلى من الحد الأدنى لباينس (عادةً 5 إلى 10 USDT حسب الزوج) لتفادي رفض الأمر.</li>
+                <li>راجع <strong class="text-white">سجل التنفيذ الفعلي</strong> أسفل تبويب البوت لمعرفة رد باينس المباشر لكل أمر.</li>
+            </ul>
         </div>
     </main>
 
     <!-- ==================== 2. الأسواق ==================== -->
     <main id="tab-markets" class="tab-content p-4 space-y-4">
         <div class="card-dark p-3">
-            <input type="text" id="marketSearch" onkeyup="renderMarkets()" placeholder="🔍 ابحث عن زوج (BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT...)" class="w-full input-dark px-3.5 py-2 text-xs">
+            <input type="text" id="marketSearch" onkeyup="renderMarkets()" placeholder="🔍 ابحث عن زوج (BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT...)" class="w-full input-dark px-3.5 py-2.5 text-xs">
         </div>
-        <div class="card-dark p-4 space-y-2" id="marketsContainer"></div>
+        <div class="card-dark p-4">
+            <div class="flex justify-between text-[11px] text-gray-400 pb-2 border-b border-[#2b3139]">
+                <span>الزوج</span>
+                <span>السعر اللحظي</span>
+                <span>تداول</span>
+            </div>
+            <div id="marketsContainer" class="divide-y divide-[#2b3139]/60 mt-1"></div>
+        </div>
     </main>
 
-    <!-- ==================== 3. تنفيذ أمر بوت حقيقي ==================== -->
+    <!-- ==================== 3. التداول بالبوت (مع النطاق والشبكات والاستراتيجية) ==================== -->
     <main id="tab-trade" class="tab-content p-4 space-y-4">
         <div class="card-dark p-4 space-y-3.5 border border-[#fcd535]/30">
-            <div class="flex justify-between items-center border-b border-[#2b3139] pb-2">
+            <div class="flex justify-between items-center border-b border-[#2b3139] pb-2.5">
                 <div>
-                    <h2 class="text-sm font-bold text-white">تنفيذ أمر بوت حقيقي على باينس</h2>
-                    <p class="text-[10px] text-gray-400">يرسل الأمر مباشرة إلى السيرفر الوسيط لتنفيذه في حسابك</p>
+                    <div class="flex items-center space-x-2 space-x-reverse">
+                        <h2 class="text-sm font-bold text-white">إعداد وتشغيل البوت</h2>
+                        <span id="botModeBadge" class="text-[10px] bg-[#fcd535]/15 text-[#fcd535] border border-[#fcd535]/30 px-2 py-0.5 rounded font-bold">شبكي AI</span>
+                    </div>
+                    <p class="text-[10px] text-gray-400 mt-0.5">نطاق سعري + عدد شبكات + تنفيذ حقيقي عبر السيرفر</p>
                 </div>
-                <span class="text-xs font-mono font-bold text-[#fcd535]" id="selectedSymbolLabel">BTCUSDT</span>
+                <span class="text-sm font-mono font-bold text-[#0ecb81]" id="livePriceBadge">$0.00</span>
             </div>
 
-            <div class="grid grid-cols-2 gap-2.5">
+            <!-- اختيار الزوج والاستراتيجية -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <div>
                     <label class="text-[11px] text-gray-400 block mb-1">الزوج (Symbol)</label>
                     <select id="orderSymbolSelect" onchange="onSymbolChange()" class="w-full input-dark p-2.5 text-xs font-mono font-bold"></select>
                 </div>
                 <div>
-                    <label class="text-[11px] text-gray-400 block mb-1">السعر اللحظي في السوق</label>
-                    <input type="text" id="livePriceInput" readonly class="w-full input-dark p-2.5 text-xs font-mono text-[#0ecb81] font-bold">
+                    <label class="text-[11px] text-gray-400 block mb-1">الاستراتيجية</label>
+                    <select id="strategySelect" onchange="onStrategyChange()" class="w-full input-dark p-2.5 text-xs font-bold">
+                        <option value="grid_ai">🕸️ الشبكي AI (توزيع شبكي ضمن نطاق)</option>
+                        <option value="manual_bot">🎛️ يدوي للبوت (أمر مخصص ضمن نطاق)</option>
+                        <option value="scalping">⚡ مضاربة سريعة (نطاق ضيق)</option>
+                        <option value="trend">📈 تتبع الاتجاه</option>
+                    </select>
                 </div>
             </div>
 
+            <!-- نطاق السعر (الأدنى - الأعلى) -->
+            <div>
+                <div class="flex justify-between items-center mb-1">
+                    <label class="text-[11px] text-gray-300 font-bold">نطاق السعر (السعر الأدنى - السعر الأعلى) USDT</label>
+                    <button type="button" onclick="autoFillPriceRange()" class="text-[10px] text-[#fcd535] underline font-bold">ضبط تلقائي</button>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <input type="number" step="any" id="minPriceInput" oninput="recalcBotMetrics()" placeholder="السعر الأدنى" class="input-dark p-2.5 text-xs font-mono">
+                    <input type="number" step="any" id="maxPriceInput" oninput="recalcBotMetrics()" placeholder="السعر الأعلى" class="input-dark p-2.5 text-xs font-mono">
+                </div>
+            </div>
+
+            <!-- الاتجاه ونوع الأمر -->
             <div class="grid grid-cols-2 gap-2 bg-[#181a20] p-1 rounded-lg">
                 <button id="sideBuyBtn" onclick="setSide('BUY')" class="py-2 rounded text-xs font-bold bg-[#0ecb81] text-black">شراء (BUY)</button>
                 <button id="sideSellBtn" onclick="setSide('SELL')" class="py-2 rounded text-xs font-bold text-gray-400">بيع (SELL)</button>
             </div>
 
+            <!-- المبلغ وعدد الشبكات -->
+            <div class="grid grid-cols-2 gap-2.5">
+                <div id="buyMarketQuoteBox">
+                    <label class="text-[11px] text-gray-400 block mb-1">المبلغ الإجمالي (USDT)</label>
+                    <input type="number" step="any" id="quoteOrderQtyInput" oninput="recalcBotMetrics()" placeholder="مثال: 20" class="input-dark p-2.5 text-xs font-mono font-bold">
+                </div>
+                <div id="baseQuantityBox" class="hidden">
+                    <label class="text-[11px] text-gray-400 block mb-1">كمية العملة (Quantity)</label>
+                    <input type="number" step="any" id="baseQuantityInput" oninput="recalcBotMetrics()" placeholder="مثال: 0.001" class="input-dark p-2.5 text-xs font-mono font-bold">
+                </div>
+
+                <div>
+                    <label class="text-[11px] text-gray-400 block mb-1">عدد الشبكات (Grids)</label>
+                    <input type="number" min="1" max="50" id="gridCountInput" oninput="recalcBotMetrics()" value="5" class="input-dark p-2.5 text-xs font-mono font-bold">
+                </div>
+            </div>
+
+            <!-- نوع الأمر والمدة -->
             <div class="grid grid-cols-2 gap-2.5">
                 <div>
-                    <label class="text-[11px] text-gray-400 block mb-1">نوع الأمر</label>
-                    <select id="orderTypeSelect" onchange="toggleLimitPrice()" class="w-full input-dark p-2.5 text-xs font-bold">
+                    <label class="text-[11px] text-gray-400 block mb-1">نوع التنفيذ في باينس</label>
+                    <select id="orderTypeSelect" onchange="toggleLimitPrice(); recalcBotMetrics();" class="w-full input-dark p-2.5 text-xs font-bold">
                         <option value="MARKET">سوق فوري (MARKET)</option>
                         <option value="LIMIT">أمر محدد السعر (LIMIT)</option>
                     </select>
                 </div>
-                <div id="limitPriceBox" class="hidden">
-                    <label class="text-[11px] text-gray-400 block mb-1">سعر LIMIT (USDT)</label>
-                    <input type="number" step="any" id="limitPriceInput" placeholder="مثال: 60000" class="w-full input-dark p-2.5 text-xs font-mono">
+                <div>
+                    <label class="text-[11px] text-gray-400 block mb-1">مدة التشغيل (أيام)</label>
+                    <input type="number" min="1" id="botDaysInput" value="7" class="input-dark p-2.5 text-xs font-mono font-bold">
                 </div>
             </div>
 
-            <!-- للشراء السوقي نستخدم مبلغ USDT، وللبيع أو LIMIT نستخدم كمية العملة -->
-            <div id="buyMarketQuoteBox">
-                <label class="text-[11px] text-gray-400 block mb-1">مبلغ الشراء بـ USDT (مثال: 15)</label>
-                <input type="number" step="any" id="quoteOrderQtyInput" placeholder="أدخل مبلغ USDT" class="w-full input-dark p-2.5 text-xs font-mono font-bold">
+            <div id="limitPriceBox" class="hidden">
+                <label class="text-[11px] text-gray-400 block mb-1">سعر التنفيذ LIMIT (USDT)</label>
+                <input type="number" step="any" id="limitPriceInput" placeholder="أدخل سعر LIMIT" class="w-full input-dark p-2.5 text-xs font-mono">
             </div>
 
-            <div id="baseQuantityBox" class="hidden">
-                <label class="text-[11px] text-gray-400 block mb-1">كمية العملة (Quantity)</label>
-                <input type="number" step="any" id="baseQuantityInput" placeholder="مثال: 0.001" class="w-full input-dark p-2.5 text-xs font-mono font-bold">
+            <!-- وقف الخسارة وجني الربح -->
+            <div class="grid grid-cols-2 gap-2.5">
+                <div>
+                    <label class="text-[11px] text-[#f6465d] block mb-1">إيقاف الخسارة %</label>
+                    <input type="number" step="0.1" id="slPercentInput" value="2.0" class="input-dark p-2 text-xs font-mono">
+                </div>
+                <div>
+                    <label class="text-[11px] text-[#0ecb81] block mb-1">جني الربح %</label>
+                    <input type="number" step="0.1" id="tpPercentInput" value="4.5" class="input-dark p-2 text-xs font-mono">
+                </div>
             </div>
 
-            <button onclick="executeRealBotOrder()" id="submitOrderBtn" class="w-full bg-[#fcd535] hover:bg-[#e5c12e] text-black font-bold py-3 rounded-xl text-sm">
-                إرسال وتنفيذ الأمر الحقيقي الآن
-            </button>
+            <!-- ملخص الشبكة والحسابات -->
+            <div class="bg-[#181a20] border border-[#2b3139] rounded-xl p-3 text-xs space-y-1">
+                <div class="flex justify-between">
+                    <span class="text-gray-400">قيمة كل شبكة تقريباً:</span>
+                    <span class="font-mono font-bold text-[#fcd535]" id="perGridValueText">$0.00</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-400">الكمية التقديرية للعملة:</span>
+                    <span class="font-mono text-white" id="estAssetQtyText">0.0000</span>
+                </div>
+            </div>
+
+            <!-- أزرار الإرسال الحقيقي -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button onclick="executeRealBotOrder(false)" id="submitOrderBtn" class="w-full bg-[#fcd535] hover:bg-[#e5c12e] text-black font-bold py-3 rounded-xl text-xs">
+                    تنفيذ أمر البوت الآن
+                </button>
+                <button onclick="executeRealBotOrder(true)" id="submitGridBatchBtn" class="w-full bg-[#0ecb81] hover:bg-[#0bb572] text-black font-bold py-3 rounded-xl text-xs">
+                    إطلاق شبكي متعدد الأوامر
+                </button>
+            </div>
         </div>
 
+        <!-- سجل التنفيذ الفعلي -->
         <div class="card-dark p-4 space-y-2">
             <h3 class="text-xs font-bold text-white">سجل التنفيذ الفعلي (الرد الحقيقي من باينس)</h3>
-            <div id="realExecutionLog" class="space-y-2 text-xs font-mono text-gray-300 max-h-60 overflow-y-auto">
+            <div id="realExecutionLog" class="space-y-2 text-xs font-mono text-gray-300 max-h-64 overflow-y-auto">
                 <div class="text-gray-500 font-sans text-center py-3">لم يتم إرسال أي أمر بعد.</div>
             </div>
         </div>
     </main>
 
-    <!-- ==================== الشريط السفلي ==================== -->
-    <nav class="nav-bar fixed bottom-0 left-0 right-0 max-w-2xl mx-auto flex justify-around items-center py-2.5 z-40">
-        <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-[#fcd535] text-[11px] font-bold w-1/3">
-            <span>💰</span><span>الرصيد</span>
+    <!-- ==================== 4. الاستراتيجيات ==================== -->
+    <main id="tab-strategies" class="tab-content p-4 space-y-4">
+        <div class="card-dark p-4">
+            <h2 class="text-sm font-bold text-white">اختيار استراتيجية البوت</h2>
+            <p class="text-xs text-gray-400 mt-1">اختر الاستراتيجية لتعبئة النطاق السعري والخطوات تلقائياً ثم الانتقال لتنفيذها.</p>
+        </div>
+
+        <div class="space-y-2.5">
+            <div onclick="applyPresetStrategy('grid_ai')" class="card-dark p-4 hover:border-[#fcd535] cursor-pointer transition">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-white">🕸️ الشبكي AI (نطاق متوسط ±4%)</span>
+                    <span class="text-[11px] bg-[#fcd535] text-black font-bold px-2.5 py-1 rounded-lg">اختيار ←</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1">مناسب للأسواق المتذبذبة لتوزيع الاستثمار على عدة شبكات ضمن نطاق محدد.</p>
+            </div>
+
+            <div onclick="applyPresetStrategy('manual_bot')" class="card-dark p-4 hover:border-[#fcd535] cursor-pointer transition">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-[#fcd535]">🎛️ يدوي للبوت (تحكم كامل بالنطاق والمدة)</span>
+                    <span class="text-[11px] bg-[#2b3139] text-[#fcd535] font-bold px-2.5 py-1 rounded-lg">اختيار ←</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1">تخصيص السعر الأدنى والأعلى وعدد الشبكات ومدة التشغيل يدوياً.</p>
+            </div>
+
+            <div onclick="applyPresetStrategy('scalping')" class="card-dark p-4 hover:border-[#fcd535] cursor-pointer transition">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-white">⚡ مضاربة سريعة (نطاق ضيق ±1.5%)</span>
+                    <span class="text-[11px] bg-[#2b3139] text-[#fcd535] font-bold px-2.5 py-1 rounded-lg">اختيار ←</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1">نطاق سعري ضيق مع وقف خسارة وجني ربح سريع.</p>
+            </div>
+
+            <div onclick="applyPresetStrategy('trend')" class="card-dark p-4 hover:border-[#fcd535] cursor-pointer transition">
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-white">📈 تتبع الاتجاه (نطاق واسع ±7%)</span>
+                    <span class="text-[11px] bg-[#2b3139] text-[#fcd535] font-bold px-2.5 py-1 rounded-lg">اختيار ←</span>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-1">مناسب للحركة الاتجاهية بنطاق أوسع ومدة أطول.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== 5. الأصول ==================== -->
+    <main id="tab-assets" class="tab-content p-4 space-y-4">
+        <div class="card-dark p-4 flex justify-between items-center">
+            <div>
+                <div class="text-xs text-gray-400">إجمالي أرصدة الحساب الحقيقية</div>
+                <div class="text-xs text-gray-500 mt-0.5">يتم جلبها مباشرة من باينس عبر السيرفر</div>
+            </div>
+            <button onclick="fetchRealBalance()" class="bg-[#fcd535] text-black font-bold text-xs px-3 py-2 rounded-lg">
+                ↻ تحديث
+            </button>
+        </div>
+
+        <div class="card-dark p-4 space-y-2">
+            <h3 class="text-sm font-bold text-white">العملات المتوفرة في حسابك</h3>
+            <div id="assetsTabList" class="text-xs text-gray-400 space-y-1.5">
+                اربط المنصة واضغط تحديث لعرض أصولك الفعلية.
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== الشريط السفلي (5 تبويبات) ==================== -->
+    <nav class="nav-bar fixed bottom-0 left-0 right-0 max-w-2xl mx-auto flex justify-around items-center py-2 px-1 z-40">
+        <button onclick="switchTab('home')" id="nav-home" class="flex flex-col items-center text-[#fcd535] text-[10px] font-bold w-1/5">
+            <span class="text-base mb-0.5">🏠</span><span>الرئيسية</span>
         </button>
-        <button onclick="switchTab('markets')" id="nav-markets" class="flex flex-col items-center text-gray-400 text-[11px] w-1/3">
-            <span>📊</span><span>الأسواق</span>
+        <button onclick="switchTab('markets')" id="nav-markets" class="flex flex-col items-center text-gray-400 text-[10px] w-1/5">
+            <span class="text-base mb-0.5">📊</span><span>الأسواق</span>
         </button>
-        <button onclick="switchTab('trade')" id="nav-trade" class="flex flex-col items-center text-gray-400 text-[11px] w-1/3">
-            <span>⚡</span><span>تنفيذ البوت</span>
+        <button onclick="switchTab('trade')" id="nav-trade" class="flex flex-col items-center text-gray-400 text-[10px] w-1/5">
+            <span class="text-base mb-0.5">⚡</span><span>تنفيذ البوت</span>
+        </button>
+        <button onclick="switchTab('strategies')" id="nav-strategies" class="flex flex-col items-center text-gray-400 text-[10px] w-1/5">
+            <span class="text-base mb-0.5">🤖</span><span>الاستراتيجيات</span>
+        </button>
+        <button onclick="switchTab('assets')" id="nav-assets" class="flex flex-col items-center text-gray-400 text-[10px] w-1/5">
+            <span class="text-base mb-0.5">💼</span><span>الأصول</span>
         </button>
     </nav>
 
@@ -179,8 +338,8 @@
             <button onclick="closeConnectModal()" class="absolute top-4 left-4 text-gray-400 text-lg">✕</button>
             <h2 class="text-base font-bold text-white">ربط السيرفر وباينس</h2>
             <div>
-                <label class="text-[11px] text-gray-400 block mb-1">رابط السيرفر الوسيط (Proxy URL)</label>
-                <input type="text" id="proxyUrlInput" placeholder="https://your-service.onrender.com" class="w-full input-dark p-2.5 text-xs font-mono">
+                <label class="text-[11px] text-gray-400 block mb-1">رابط السيرفر الوسيط (Render URL)</label>
+                <input type="text" id="proxyUrlInput" placeholder="https://my-but.onrender.com" class="w-full input-dark p-2.5 text-xs font-mono">
             </div>
             <div>
                 <label class="text-[11px] text-gray-400 block mb-1">API Key</label>
@@ -212,8 +371,16 @@
             { symbol: 'ETHUSDT', name: 'Ethereum', price: 0 },
             { symbol: 'SOLUSDT', name: 'Solana', price: 0 },
             { symbol: 'BNBUSDT', name: 'BNB', price: 0 },
-            { symbol: 'XRPUSDT', name: 'Ripple', price: 0 }
+            { symbol: 'XRPUSDT', name: 'Ripple', price: 0 },
+            { symbol: 'DOGEUSDT', name: 'Dogecoin', price: 0 }
         ];
+
+        const strategyPresets = {
+            grid_ai: { badge: 'شبكي AI', spread: 0.04, grids: 5, days: 14, sl: 2.0, tp: 4.5 },
+            manual_bot: { badge: 'يدوي للبوت', spread: 0.05, grids: 4, days: 7, sl: 1.5, tp: 3.5 },
+            scalping: { badge: 'مضاربة سريعة', spread: 0.015, grids: 3, days: 3, sl: 1.0, tp: 2.0 },
+            trend: { badge: 'تتبع الاتجاه', spread: 0.07, grids: 6, days: 30, sl: 3.0, tp: 7.0 }
+        };
 
         function initSymbolSelect() {
             const sel = document.getElementById('orderSymbolSelect');
@@ -221,11 +388,72 @@
             onSymbolChange();
         }
 
-        function onSymbolChange() {
+        function getCurrentPairObj() {
             const sym = document.getElementById('orderSymbolSelect').value;
-            document.getElementById('selectedSymbolLabel').innerText = sym;
-            const item = pairs.find(p => p.symbol === sym);
-            document.getElementById('livePriceInput').value = item && item.price ? item.price : 'جاري الجلب...';
+            return pairs.find(p => p.symbol === sym) || pairs[0];
+        }
+
+        function onSymbolChange() {
+            const p = getCurrentPairObj();
+            document.getElementById('livePriceBadge').innerText = p.price ? `$${formatPrice(p.price)}` : '$0.00';
+            if (p.price && !document.getElementById('minPriceInput').value) {
+                autoFillPriceRange();
+            } else {
+                recalcBotMetrics();
+            }
+        }
+
+        function onStrategyChange() {
+            const key = document.getElementById('strategySelect').value;
+            const preset = strategyPresets[key] || strategyPresets.grid_ai;
+            document.getElementById('botModeBadge').innerText = preset.badge;
+            document.getElementById('gridCountInput').value = preset.grids;
+            document.getElementById('botDaysInput').value = preset.days;
+            document.getElementById('slPercentInput').value = preset.sl;
+            document.getElementById('tpPercentInput').value = preset.tp;
+            autoFillPriceRange(preset.spread);
+        }
+
+        function applyPresetStrategy(key) {
+            document.getElementById('strategySelect').value = key;
+            onStrategyChange();
+            switchTab('trade');
+            notify(`تم تطبيق استراتيجية: ${strategyPresets[key].badge}`);
+        }
+
+        function autoFillPriceRange(customSpread) {
+            const p = getCurrentPairObj();
+            if (!p || !p.price) return;
+            const key = document.getElementById('strategySelect').value;
+            const spread = customSpread || (strategyPresets[key] ? strategyPresets[key].spread : 0.04);
+            const dec = p.price < 1 ? 4 : 2;
+            document.getElementById('minPriceInput').value = (p.price * (1 - spread)).toFixed(dec);
+            document.getElementById('maxPriceInput').value = (p.price * (1 + spread)).toFixed(dec);
+            recalcBotMetrics();
+        }
+
+        function recalcBotMetrics() {
+            const p = getCurrentPairObj();
+            const grids = Math.max(1, parseInt(document.getElementById('gridCountInput').value, 10) || 1);
+            const type = document.getElementById('orderTypeSelect').value;
+            const isMarketBuy = type === 'MARKET' && orderSide === 'BUY';
+
+            let totalUsdt = 0;
+            if (isMarketBuy) {
+                totalUsdt = parseFloat(document.getElementById('quoteOrderQtyInput').value) || 0;
+            } else {
+                const qty = parseFloat(document.getElementById('baseQuantityInput').value) || 0;
+                const refPrice = type === 'LIMIT'
+                    ? (parseFloat(document.getElementById('limitPriceInput').value) || (p ? p.price : 0))
+                    : (p ? p.price : 0);
+                totalUsdt = qty * refPrice;
+            }
+
+            const perGrid = totalUsdt / grids;
+            const estQty = p && p.price ? (totalUsdt / p.price) : 0;
+
+            document.getElementById('perGridValueText').innerText = `$${perGrid.toFixed(2)}`;
+            document.getElementById('estAssetQtyText').innerText = estQty > 0 ? estQty.toFixed(5) : '0.0000';
         }
 
         async function fetchLivePrices() {
@@ -238,26 +466,37 @@
                 });
                 onSymbolChange();
                 renderMarkets();
+                renderHomeQuickPairs();
             } catch (_) {}
+        }
+
+        function renderHomeQuickPairs() {
+            document.getElementById('homeQuickPairs').innerHTML = pairs.slice(0, 4).map(p => `
+                <button onclick="selectSymbolAndGoTrade('${p.symbol}')" class="p-3 bg-[#181a20] hover:bg-[#2b3139] border border-[#2b3139] rounded-xl text-right transition">
+                    <div class="text-xs font-bold text-white">${p.symbol}</div>
+                    <div class="text-xs font-mono text-[#0ecb81] mt-0.5">$${p.price ? formatPrice(p.price) : '...'}</div>
+                </button>
+            `).join('');
         }
 
         function renderMarkets() {
             const q = (document.getElementById('marketSearch').value || '').toUpperCase();
             const list = pairs.filter(p => p.symbol.includes(q) || p.name.toUpperCase().includes(q));
             document.getElementById('marketsContainer').innerHTML = list.map(p => `
-                <div onclick="selectSymbolAndGoTrade('${p.symbol}')" class="flex justify-between items-center py-2.5 px-2 hover:bg-[#181a20] rounded-lg cursor-pointer">
+                <div onclick="selectSymbolAndGoTrade('${p.symbol}')" class="flex justify-between items-center py-3 px-1 hover:bg-[#181a20] rounded-lg cursor-pointer">
                     <div>
                         <div class="text-xs font-bold text-white">${p.symbol}</div>
                         <div class="text-[10px] text-gray-400">${p.name}</div>
                     </div>
-                    <div class="font-mono text-xs font-bold text-[#0ecb81]">$${p.price ? p.price.toLocaleString('en-US') : '...'}</div>
+                    <div class="font-mono text-xs font-bold text-[#0ecb81]">$${p.price ? formatPrice(p.price) : '...'}</div>
+                    <span class="text-[11px] bg-[#fcd535]/15 text-[#fcd535] font-bold px-2.5 py-1 rounded">بوت ←</span>
                 </div>
             `).join('');
         }
 
         function selectSymbolAndGoTrade(sym) {
             document.getElementById('orderSymbolSelect').value = sym;
-            onSymbolChange();
+            autoFillPriceRange();
             switchTab('trade');
         }
 
@@ -270,6 +509,7 @@
                 ? 'py-2 rounded text-xs font-bold bg-[#f6465d] text-white'
                 : 'py-2 rounded text-xs font-bold text-gray-400';
             refreshAmountInputs();
+            recalcBotMetrics();
         }
 
         function toggleLimitPrice() {
@@ -310,7 +550,7 @@
 
         async function fetchRealBalance() {
             if (!proxyUrl || !apiKey || !apiSecret) {
-                return notify('افتح "ربط المنصة" وأدخل بيانات السيرفر ومفاتيح API');
+                return notify('اضغط "🔗 ربط" وأدخل رابط السيرفر ومفاتيح API');
             }
             try {
                 const res = await fetch(`${proxyUrl}/api/balance`, {
@@ -320,89 +560,120 @@
                 });
                 const data = await res.json();
                 if (!data.ok) {
-                    document.getElementById('connDot').className = 'w-2.5 h-2.5 rounded-full bg-[#f6465d] inline-block';
+                    document.getElementById('connDot').className = 'w-2.5 h-2.5 rounded-full bg-[#f6465d] shrink-0';
                     document.getElementById('connStatusText').innerText = 'خطأ في الاتصال بباينس';
                     return notify(data.error || 'تعذر جلب الرصيد');
                 }
 
-                document.getElementById('connDot').className = 'w-2.5 h-2.5 rounded-full bg-[#0ecb81] inline-block';
+                document.getElementById('connDot').className = 'w-2.5 h-2.5 rounded-full bg-[#0ecb81] shrink-0';
                 document.getElementById('connStatusText').innerText = 'متصل وحقيقي';
                 document.getElementById('realUsdtFree').innerText = Number(data.usdtFree || 0).toFixed(2);
                 document.getElementById('realUsdtLocked').innerText = Number(data.usdtLocked || 0).toFixed(2);
 
-                const assetsEl = document.getElementById('accountAssetsList');
-                if (!data.balances || data.balances.length === 0) {
-                    assetsEl.innerHTML = 'لا توجد أرصدة غير صفرية في الحساب.';
-                } else {
-                    assetsEl.innerHTML = data.balances.map(b => `
-                        <div class="flex justify-between items-center p-2 bg-[#181a20] rounded-lg border border-[#2b3139] font-mono">
+                const html = (!data.balances || data.balances.length === 0)
+                    ? 'لا توجد أرصدة غير صفرية في الحساب.'
+                    : data.balances.map(b => `
+                        <div class="flex justify-between items-center p-2.5 bg-[#181a20] rounded-lg border border-[#2b3139] font-mono">
                             <span class="text-white font-bold">${b.asset}</span>
                             <span class="text-[#0ecb81]">متاح: ${b.free}</span>
                             <span class="text-gray-400">محجوز: ${b.locked}</span>
                         </div>
                     `).join('');
-                }
+                document.getElementById('assetsTabList').innerHTML = html;
                 notify('تم تحديث الرصيد الحقيقي من باينس');
             } catch (err) {
                 notify('فشل الوصول للسيرفر: ' + err.message);
             }
         }
 
-        async function executeRealBotOrder() {
+        async function executeRealBotOrder(isGridBatch) {
             if (!proxyUrl || !apiKey || !apiSecret) {
                 return notify('اربط المنصة والسيرفر أولاً قبل إرسال الأمر');
             }
 
             const symbol = document.getElementById('orderSymbolSelect').value;
             const type = document.getElementById('orderTypeSelect').value;
-            const quoteOrderQty = document.getElementById('quoteOrderQtyInput').value;
-            const quantity = document.getElementById('baseQuantityInput').value;
-            const price = document.getElementById('limitPriceInput').value;
+            const minP = parseFloat(document.getElementById('minPriceInput').value);
+            const maxP = parseFloat(document.getElementById('maxPriceInput').value);
+            const grids = Math.max(1, Math.min(20, parseInt(document.getElementById('gridCountInput').value, 10) || 1));
+            const quoteOrderQty = parseFloat(document.getElementById('quoteOrderQtyInput').value);
+            const quantity = parseFloat(document.getElementById('baseQuantityInput').value);
+            const limitPrice = parseFloat(document.getElementById('limitPriceInput').value);
 
-            const payload = {
-                apiKey,
-                apiSecret,
-                symbol,
-                side: orderSide,
-                type,
-                testnet
-            };
-
-            if (type === 'MARKET' && orderSide === 'BUY') {
-                payload.quoteOrderQty = quoteOrderQty;
-            } else {
-                payload.quantity = quantity;
-            }
-            if (type === 'LIMIT') {
-                payload.price = price;
+            if (minP && maxP && minP >= maxP) {
+                return notify('السعر الأدنى يجب أن يكون أقل من السعر الأعلى');
             }
 
-            const btn = document.getElementById('submitOrderBtn');
-            btn.disabled = true;
-            btn.innerText = 'جاري الإرسال إلى باينس...';
+            const btn1 = document.getElementById('submitOrderBtn');
+            const btn2 = document.getElementById('submitGridBatchBtn');
+            btn1.disabled = true;
+            btn2.disabled = true;
 
             try {
-                const res = await fetch(`${proxyUrl}/api/order`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                const data = await res.json();
+                if (!isGridBatch) {
+                    const payload = { apiKey, apiSecret, symbol, side: orderSide, type, testnet };
+                    if (type === 'MARKET' && orderSide === 'BUY') {
+                        payload.quoteOrderQty = quoteOrderQty;
+                    } else {
+                        payload.quantity = quantity;
+                    }
+                    if (type === 'LIMIT') payload.price = limitPrice;
 
-                if (!data.ok) {
-                    prependLog(`❌ رفض الأمر (${symbol} ${orderSide}): ${data.error}`);
-                    notify('رفضت باينس الأمر: ' + data.error);
+                    const res = await fetch(`${proxyUrl}/api/order`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const data = await res.json();
+                    if (!data.ok) {
+                        prependLog(`❌ رفض الأمر (${symbol} ${orderSide}): ${data.error}`);
+                        notify('رفضت باينس الأمر: ' + data.error);
+                    } else {
+                        prependLog(`✅ تم التنفيذ (${symbol} ${orderSide}) | OrderID: ${data.order.orderId} | الحالة: ${data.order.status}`);
+                        notify('تم تنفيذ الأمر فعلياً في باينس');
+                        await fetchRealBalance();
+                    }
                 } else {
-                    prependLog(`✅ تم تنفيذ الأمر في باينس | OrderID: ${data.order.orderId} | الحالة: ${data.order.status}`);
-                    notify('تم تنفيذ الأمر فعلياً في باينس');
+                    if (!minP || !maxP) return notify('حدد السعر الأدنى والأعلى لإطلاق الشبكة');
+                    if (orderSide !== 'BUY' || !quoteOrderQty) return notify('الشبكي متعدد الأوامر هنا يعمل بشراء USDT؛ أدخل مبلغ USDT');
+
+                    const perGridQuote = quoteOrderQty / grids;
+                    if (perGridQuote < 5) {
+                        return notify(`قيمة كل شبكة ($${perGridQuote.toFixed(2)}) أقل من 5 USDT؛ زد المبلغ أو قلل الشبكات`);
+                    }
+
+                    for (let i = 0; i < grids; i++) {
+                        const stepPrice = grids === 1 ? minP : (minP + ((maxP - minP) * i) / (grids - 1));
+                        const stepQty = (perGridQuote / stepPrice).toFixed(5);
+                        const res = await fetch(`${proxyUrl}/api/order`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                apiKey,
+                                apiSecret,
+                                symbol,
+                                side: 'BUY',
+                                type: 'LIMIT',
+                                quantity: stepQty,
+                                price: stepPrice.toFixed(stepPrice < 1 ? 4 : 2),
+                                testnet
+                            })
+                        });
+                        const data = await res.json();
+                        if (!data.ok) {
+                            prependLog(`❌ شبكة #${i + 1} عند سعر ${stepPrice.toFixed(2)}: ${data.error}`);
+                        } else {
+                            prependLog(`✅ شبكة #${i + 1} أُرسلت عند سعر ${stepPrice.toFixed(2)} | ID: ${data.order.orderId}`);
+                        }
+                    }
                     await fetchRealBalance();
                 }
             } catch (err) {
                 prependLog(`❌ خطأ بالاتصال بالسيرفر: ${err.message}`);
                 notify('خطأ بالاتصال بالسيرفر');
             } finally {
-                btn.disabled = false;
-                btn.innerText = 'إرسال وتنفيذ الأمر الحقيقي الآن';
+                btn1.disabled = false;
+                btn2.disabled = false;
             }
         }
 
@@ -416,12 +687,16 @@
         function switchTab(tab) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.getElementById('tab-' + tab).classList.add('active');
-            ['home', 'markets', 'trade'].forEach(t => {
+            ['home', 'markets', 'trade', 'strategies', 'assets'].forEach(t => {
                 const el = document.getElementById('nav-' + t);
                 el.className = t === tab
-                    ? 'flex flex-col items-center text-[#fcd535] text-[11px] font-bold w-1/3'
-                    : 'flex flex-col items-center text-gray-400 text-[11px] w-1/3';
+                    ? 'flex flex-col items-center text-[#fcd535] text-[10px] font-bold w-1/5'
+                    : 'flex flex-col items-center text-gray-400 text-[10px] w-1/5';
             });
+        }
+
+        function formatPrice(v) {
+            return v < 1 ? v.toFixed(4) : v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
 
         function notify(msg) {
